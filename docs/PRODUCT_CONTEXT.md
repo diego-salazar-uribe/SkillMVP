@@ -4,7 +4,7 @@
 
 Skills Compare is a web product that helps people search, evaluate, and choose online courses for a skill through clear, structured, honest comparison.
 
-The product is not trying to become the largest generic course directory. Its job is to reduce decision friction between discovering a skill and choosing a course.
+The product is not trying to become an undifferentiated course directory. Its job is to reduce decision friction between discovering a skill and choosing a course while building useful horizontal coverage across business/professional skills, languages, design/creativity, and technology/data as authorized sources permit.
 
 ## Core User Job
 
@@ -28,6 +28,8 @@ The product should help users make a better-informed decision. It must not prete
 ## Business Objective
 
 Build an organic and recurring audience around skill-based course discovery, then monetize only when the product and catalog are sufficiently trustworthy.
+
+The product-owner-approved direction recorded in issue #136 is to grow catalog breadth and automated operation together, with low recurring human effort and long-term profitability. Catalog development does not wait for a traffic threshold, but production activation, evidence, source permission, comparison, SEO, and monetization remain separate gates.
 
 Long-term business levers may include:
 
@@ -64,6 +66,10 @@ Agents may accelerate implementation and analysis, but product judgment and data
 
 Avoid speculative systems, dependencies, services, and operational burden before traction requires them.
 
+### 7. Automate routine source decisions safely
+
+For stabilized authorized sources, deterministic versioned policy should process valid records without per-record or per-batch human approval. Evidence, provenance, actor identity, rule version, content digest, outcome, reasons, rollback, bounded retries, and quarantine remain mandatory. Human intervention is reserved for permissions, credentials, business-policy changes, spending, and high-impact exceptions.
+
 ## Success Definition
 
 The project is moving in the right direction when:
@@ -84,3 +90,4 @@ Until the roadmap explicitly advances:
 - No broad recommendation engine.
 - No user accounts or database merely for future-proofing.
 - No affiliate or ad implementation before a real, auditable monetization program exists.
+- No production activation of a connector merely because its isolated pilot passes.

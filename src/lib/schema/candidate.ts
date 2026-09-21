@@ -26,6 +26,21 @@ export const CandidateDispositionSchema = z.enum([
   "quarantined"
 ]);
 
+export const CandidateSourceIdentitySchema = z.object({
+  sourceId: z.string().min(1),
+  providerCourseId: z.string().min(1)
+});
+
+export const MachineDecisionSchema = z.object({
+  actor: z.string().min(1),
+  policyId: z.string().min(1),
+  policyVersion: z.string().min(1),
+  decidedAt: z.string().datetime(),
+  candidateDigest: z.string().regex(/^[a-f0-9]{64}$/),
+  outcome: z.enum(["publish", "quarantine"]),
+  reasons: z.array(z.string().min(1)).min(1)
+});
+
 export const FieldEvidenceSchema = z.object({
   field: z.string().min(1),
   sourceUrl: z.string(),
@@ -55,6 +70,7 @@ export const CandidateSourceMetadataSchema = z
 const CandidateCoreSchema = z.object({
   candidateId: z.string().min(1),
   proposedCourseId: z.string().min(1),
+  sourceIdentity: CandidateSourceIdentitySchema,
   platform: z.string().min(1),
   provider: z.string().min(1),
   canonicalSourceUrl: z.string(),
@@ -79,7 +95,8 @@ export const CandidateEnvelopeSchema = CandidateCoreSchema.extend({
       note: z.string().min(1),
       candidateDigest: z.string().regex(/^[a-f0-9]{64}$/)
     })
-    .nullable()
+    .nullable(),
+  machineDecision: MachineDecisionSchema.nullable()
 });
 
 export const CandidateBatchInputSchema = z.object({
@@ -114,11 +131,13 @@ export const AcceptedSourceMetadataSchema = z
         candidateDigest: z.string().regex(/^[a-f0-9]{64}$/)
       })
       .optional(),
+    machineDecision: MachineDecisionSchema.optional(),
     ingestion: z
       .object({
         batchId: z.string().min(1),
         platform: z.string().min(1),
         provider: z.string().min(1),
+        sourceIdentity: CandidateSourceIdentitySchema.optional(),
         discoveredAt: z.string().date(),
         observedAt: z.string().date(),
         availability: AvailabilityEvidenceSchema

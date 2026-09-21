@@ -1,0 +1,53 @@
+{
+  "sourceId": "mit-learn-ocw",
+  "sourceName": "MIT Learn / MIT OpenCourseWare",
+  "sourceAccess": "official anonymous read-only API",
+  "requestUrl": "https://api.learn.mit.edu/api/v1/learning_resources/?platform=ocw&resource_type=course&limit=50&offset=0",
+  "executedAt": "2026-09-21T16:16:53.341Z",
+  "asOf": "2026-09-21",
+  "sourcePaused": false,
+  "sourceTotalAvailable": 2586,
+  "discovered": 50,
+  "normalized": 50,
+  "valid": 50,
+  "quarantined": 0,
+  "isolatedPublished": 50,
+  "isolatedInserted": 0,
+  "isolatedUpdated": 0,
+  "isolatedUnchanged": 50,
+  "confirmedWithdrawals": 0,
+  "categories": {
+    "business-professional": 7,
+    "design-creativity": 5,
+    "humanities": 9,
+    "languages": 2,
+    "science-engineering": 17,
+    "society-other": 6,
+    "technology-data": 4
+  },
+  "exceptionCounts": {},
+  "policy": {
+    "actor": "skillmvp:authorized-source-policy",
+    "id": "authorized-source-publication",
+    "version": "1.0.0"
+  },
+  "operatingLimits": {
+    "records": 50,
+    "requests": 1,
+    "maxAttempts": 3,
+    "requestTimeoutMs": 10000,
+    "withdrawalConfirmationsRequired": 2
+  },
+  "attemptsUsed": 1,
+  "humanReviews": 0,
+  "productionTargetsChanged": false,
+  "productionDigests": {
+    "catalog": "69166293b12fd3eadb32c99e2bf89537b6fd933f94f34a863d3debaf79af32a6",
+    "metadata": "96e040803b9881663dd49e2f400ae60c53625bcdb41dd056983751d80b82797f",
+    "manifest": "104adf6fc5702765ea4b5a33f1e53a0d4c9dceb217221b77019e6bc6c45efe4f"
+  },
+  "activation": "isolated_only",
+  "licensingGate": "OCW CC BY-NC-SA 4.0 permits this noncommercial isolated pilot; production monetization requires separate compatibility review or permission.",
+  "decisionGradeManifestChanged": false,
+  "seoOutputsChanged": false
+}

@@ -35,9 +35,10 @@ corepack pnpm validate:candidates -- --staging data/staging/candidates.json --as
 corepack pnpm report:candidates -- --staging data/staging/candidates.json
 corepack pnpm review:candidates -- --staging data/staging/candidates.json --ids candidate-a,candidate-b --note "Reviewed official evidence" --as-of YYYY-MM-DD
 corepack pnpm promote:candidates -- --staging data/staging/candidates.json --ids candidate-a,candidate-b --as-of YYYY-MM-DD
+corepack pnpm run:authorized-ingestion -- --limit 50 --as-of YYYY-MM-DD --workspace data/staging/issue-135-mit-ocw
 ```
 
-Candidate ingestion writes to staging only. Promotion requires explicit reviewed IDs and never changes decision-grade approval. The legacy `ingest:edx`, `ingest:coursera`, and `build:catalog` publishers are disabled. See [docs/candidate-ingestion-foundation.md](docs/candidate-ingestion-foundation.md) for the contract and runbook.
+Candidate ingestion writes to staging only. Normal promotion requires explicit human-reviewed IDs; the authorized-source runner can use versioned machine decisions only against isolated accepted-data copies. Neither path changes decision-grade approval. The legacy `ingest:edx`, `ingest:coursera`, and `build:catalog` publishers are disabled. See [docs/candidate-ingestion-foundation.md](docs/candidate-ingestion-foundation.md) for the contract and runbook.
 
 ## Current Product Limitations
 

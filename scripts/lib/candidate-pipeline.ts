@@ -77,7 +77,18 @@ export type PromotionReceipt = {
   batchId: string;
   candidateIds: string[];
   promoted: number;
+  inserted: number;
+  updated: number;
+  unchanged: number;
   acceptedSemanticChanges: number;
+};
+
+export type MachinePublicationPolicy = {
+  actor: string;
+  policyId: string;
+  policyVersion: string;
+  sourceId: string;
+  allowedSourceHosts: readonly string[];
 };
 
 type ValidationOptions = {
@@ -91,6 +102,7 @@ type PromotionOptions = ValidationOptions & {
   catalogPath?: string;
   metadataPath?: string;
   receiptPath?: string;
+  machinePolicy?: MachinePublicationPolicy;
 };
 
 const parseJsonFile = (path: string): unknown =>
@@ -113,11 +125,12 @@ const canonicalize = (value: unknown): unknown => {
 const semanticEqual = (left: unknown, right: unknown) =>
   JSON.stringify(canonicalize(left)) === JSON.stringify(canonicalize(right));
 
-const reviewDigest = (candidate: CandidateEnvelope) => {
+export const candidateContentDigest = (candidate: CandidateEnvelope) => {
   const {
     disposition: _disposition,
     exceptionCodes: _exceptionCodes,
     humanReview: _humanReview,
+    machineDecision: _machineDecision,
     ...reviewedContent
   } = candidate;
   return createHash("sha256")
@@ -229,7 +242,8 @@ export const ingestCandidateInput = (input: unknown): CandidateStagingFile => {
         ...candidate,
         exceptionCodes: [],
         disposition: "candidate" as const,
-        humanReview: null
+        humanReview: null,
+        machineDecision: null
       }))
   };
 };
@@ -424,8 +438,17 @@ export const validateCandidateBatch = (
     const exceptionCodes = orderedExceptions(exceptions);
     const humanReview =
       exceptionCodes.length === 0 &&
-      candidate.humanReview?.candidateDigest === reviewDigest(candidate)
+      candidate.humanReview?.candidateDigest === candidateContentDigest(candidate)
         ? candidate.humanReview
+        : null;
+    const decisionDigest = candidateContentDigest(candidate);
+    const machineDecision =
+      candidate.machineDecision?.candidateDigest === decisionDigest &&
+      ((exceptionCodes.length === 0 &&
+        candidate.machineDecision.outcome === "publish") ||
+        (exceptionCodes.length > 0 &&
+          candidate.machineDecision.outcome === "quarantine"))
+        ? candidate.machineDecision
         : null;
     return {
       ...candidate,
@@ -434,13 +457,66 @@ export const validateCandidateBatch = (
         exceptionCodes.length === 0
           ? ("review_ready" as const)
           : ("quarantined" as const),
-      humanReview
+      humanReview,
+      machineDecision
     };
   });
 
   return {
     batch: { ...batch, candidates },
     normalized
+  };
+};
+
+export const applyMachinePublicationPolicy = (
+  input: unknown,
+  options: ValidationOptions & {
+    decidedAt: string;
+    policy: MachinePublicationPolicy;
+  }
+): CandidateStagingFile => {
+  if (Number.isNaN(Date.parse(options.decidedAt))) {
+    throw new Error(`Invalid policy decision timestamp: ${options.decidedAt}`);
+  }
+  const validated = validateCandidateBatch(input, options).batch;
+  return {
+    ...validated,
+    candidates: validated.candidates.map((candidate) => {
+      let sourceHost = "";
+      try {
+        sourceHost = new URL(candidate.canonicalSourceUrl).hostname.toLowerCase();
+      } catch {
+        sourceHost = "";
+      }
+      const sourceAllowed =
+        candidate.sourceIdentity.sourceId === options.policy.sourceId &&
+        options.policy.allowedSourceHosts.includes(sourceHost) &&
+        candidate.sourceMetadata.sourceType === "official_provider_api";
+      const canPublish =
+        sourceAllowed && candidate.disposition === "review_ready";
+      const reasons = canPublish
+        ? [
+            "authorized_source_identity",
+            "deterministic_validation_passed",
+            "actionable_pricing_confirmed"
+          ]
+        : [
+            ...(sourceAllowed ? [] : ["source_not_authorized_by_policy"]),
+            ...candidate.exceptionCodes
+          ];
+      return {
+        ...candidate,
+        machineDecision: {
+          actor: options.policy.actor,
+          policyId: options.policy.policyId,
+          policyVersion: options.policy.policyVersion,
+          decidedAt: options.decidedAt,
+          candidateDigest: candidateContentDigest(candidate),
+          outcome: canPublish ? ("publish" as const) : ("quarantine" as const),
+          reasons: reasons.length > 0 ? reasons : ["policy_rejected"]
+        }
+      };
+    })
   };
 };
 
@@ -490,7 +566,7 @@ export const markCandidatesReviewed = (
             humanReview: {
               reviewedAt: options.reviewedAt,
               note: options.note.trim(),
-              candidateDigest: reviewDigest(candidate)
+              candidateDigest: candidateContentDigest(candidate)
             }
           }
         : candidate
@@ -546,11 +622,13 @@ const buildAcceptedMetadata = (
     ingestionCandidateId: candidate.candidateId,
     pricingEvidence: PricingOptionSchema.array().parse(candidate.pricingEvidence),
     fieldEvidence: candidate.fieldEvidence,
-    humanReview: candidate.humanReview,
+    humanReview: candidate.humanReview ?? undefined,
+    machineDecision: candidate.machineDecision ?? undefined,
     ingestion: {
       batchId,
       platform: candidate.platform,
       provider: candidate.provider,
+      sourceIdentity: candidate.sourceIdentity,
       discoveredAt: candidate.discoveredAt,
       observedAt: candidate.observedAt,
       availability: candidate.availability
@@ -630,7 +708,8 @@ export const promoteCandidates = ({
   metadataPath = resolve("data/normalized/course-source-metadata.json"),
   receiptPath,
   asOf,
-  staleAfterDays
+  staleAfterDays,
+  machinePolicy
 }: PromotionOptions): PromotionReceipt => {
   if (candidateIds.length === 0) {
     throw new Error("Promotion requires at least one explicit candidate ID.");
@@ -660,10 +739,24 @@ export const promoteCandidates = ({
         validatedCandidate.exceptionCodes
       ) ||
       validatedCandidate.disposition !== "review_ready" ||
-      validatedCandidate.humanReview == null
+      validatedCandidate.humanReview == null &&
+      !(
+        machinePolicy != null &&
+        validatedCandidate.machineDecision?.outcome === "publish" &&
+        validatedCandidate.machineDecision.actor === machinePolicy.actor &&
+        validatedCandidate.machineDecision.policyId === machinePolicy.policyId &&
+        validatedCandidate.machineDecision.policyVersion ===
+          machinePolicy.policyVersion &&
+        validatedCandidate.sourceIdentity.sourceId === machinePolicy.sourceId &&
+        machinePolicy.allowedSourceHosts.includes(
+          new URL(validatedCandidate.canonicalSourceUrl).hostname.toLowerCase()
+        ) &&
+        validatedCandidate.machineDecision.candidateDigest ===
+          candidateContentDigest(validatedCandidate)
+      )
     ) {
       throw new Error(
-        `Candidate is unreviewed or quarantined and cannot be promoted: ${candidateId}`
+        `Candidate lacks an eligible human or machine publication decision: ${candidateId}`
       );
     }
     return validatedCandidate;
@@ -703,6 +796,9 @@ export const promoteCandidates = ({
   }
   const newCourses: Array<Record<string, unknown> & { id: string }> = [];
   const newMetadata: AcceptedSourceMetadata[] = [];
+  let inserted = 0;
+  let updated = 0;
+  let unchanged = 0;
   let acceptedSemanticChanges = 0;
 
   for (const candidate of selected) {
@@ -722,14 +818,29 @@ export const promoteCandidates = ({
     }
 
     if (existingCourse || existingMetadata) {
+      if (!existingCourse || !existingMetadata) {
+        throw new Error(`Accepted ID collision: ${course.id}`);
+      }
+      const existingIdentity = existingMetadata.ingestion?.sourceIdentity;
       if (
-        !existingCourse ||
-        !existingMetadata ||
-        !semanticEqual(existingCourse, course) ||
-        !semanticEqual(existingMetadata, sourceMetadata)
+        !existingIdentity ||
+        existingIdentity.sourceId !== candidate.sourceIdentity.sourceId ||
+        existingIdentity.providerCourseId !==
+          candidate.sourceIdentity.providerCourseId
       ) {
         throw new Error(`Accepted ID collision: ${course.id}`);
       }
+      if (
+        semanticEqual(existingCourse, course) &&
+        semanticEqual(existingMetadata, sourceMetadata)
+      ) {
+        unchanged += 1;
+        continue;
+      }
+      catalogById.set(course.id, course);
+      metadataById.set(course.id, sourceMetadata);
+      updated += 1;
+      acceptedSemanticChanges += 1;
       continue;
     }
 
@@ -738,6 +849,7 @@ export const promoteCandidates = ({
     metadataByUrl.set(normalizeUrl(sourceMetadata.sourceUrl), course.id);
     newCourses.push(course);
     newMetadata.push(sourceMetadata);
+    inserted += 1;
     acceptedSemanticChanges += 1;
   }
 
@@ -747,8 +859,14 @@ export const promoteCandidates = ({
   newMetadata.sort((left, right) =>
     left.courseId.localeCompare(right.courseId)
   );
-  const nextCatalog = [...catalog, ...newCourses];
-  const nextMetadata = [...metadata, ...newMetadata];
+  const nextCatalog = [
+    ...catalog.map((course) => catalogById.get(course.id)!),
+    ...newCourses
+  ];
+  const nextMetadata = [
+    ...metadata.map((item) => metadataById.get(item.courseId)!),
+    ...newMetadata
+  ];
 
   CourseSchema.array().parse(nextCatalog);
   AcceptedSourceMetadataSchema.array().parse(nextMetadata);
@@ -765,6 +883,9 @@ export const promoteCandidates = ({
     batchId: validated.batchId,
     candidateIds: [...candidateIds].sort(),
     promoted: selected.length,
+    inserted,
+    updated,
+    unchanged,
     acceptedSemanticChanges
   };
   if (receiptPath) {
@@ -772,6 +893,62 @@ export const promoteCandidates = ({
     writeJsonAtomic(receiptPath, receipt);
   }
   return receipt;
+};
+
+export const withdrawAcceptedBySourceIdentity = ({
+  catalogPath,
+  metadataPath,
+  sourceId,
+  providerCourseIds,
+  withdrawnAt
+}: {
+  catalogPath: string;
+  metadataPath: string;
+  sourceId: string;
+  providerCourseIds: string[];
+  withdrawnAt: string;
+}) => {
+  if (!isDate(withdrawnAt)) {
+    throw new Error(`Invalid withdrawal date: ${withdrawnAt}`);
+  }
+  const requested = new Set(providerCourseIds);
+  if (requested.size !== providerCourseIds.length) {
+    throw new Error("Withdrawal provider identities must be unique.");
+  }
+  const catalog = CourseSchema.array().parse(parseJsonFile(catalogPath));
+  const metadata = AcceptedSourceMetadataSchema.array().parse(
+    parseJsonFile(metadataPath)
+  );
+  const matched = new Set<string>();
+  let changed = 0;
+  const nextMetadata = metadata.map((item) => {
+    const identity = item.ingestion?.sourceIdentity;
+    if (
+      identity?.sourceId !== sourceId ||
+      !requested.has(identity.providerCourseId)
+    ) {
+      return item;
+    }
+    matched.add(identity.providerCourseId);
+    if (item.publicationStatus === "source_blocked") return item;
+    changed += 1;
+    return AcceptedSourceMetadataSchema.parse({
+      ...item,
+      publicationStatus: "source_blocked",
+      lastVerifiedAt: withdrawnAt,
+      notes: `${item.notes} Automated withdrawal confirmed on ${withdrawnAt} after the source policy threshold.`
+    });
+  });
+  const missing = providerCourseIds.filter((id) => !matched.has(id));
+  if (missing.length > 0) {
+    throw new Error(
+      `Withdrawal identities not found for source ${sourceId}: ${missing.join(", ")}`
+    );
+  }
+  if (changed > 0) {
+    replaceAcceptedFiles(catalogPath, metadataPath, catalog, nextMetadata);
+  }
+  return { requested: providerCourseIds.length, changed };
 };
 
 export const readCandidateFile = (path: string) => parseJsonFile(path);
