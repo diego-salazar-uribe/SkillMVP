@@ -72,15 +72,15 @@ Optional data can be present when verified:
 - No ranking or recommendation claims unless explicit criteria are defined and displayed
 
 ## Update workflow
-1. Put a bounded 1–50-record curated provider-neutral input through `ingest:candidates`; ingestion writes staging only.
-2. Run deterministic candidate validation and report review-ready/quarantined exceptions.
-3. Complete and record human review for material uncertainty on explicitly named `review_ready` IDs.
-4. Promote only explicitly named, human-reviewed candidate IDs; accepted catalog/source metadata update together and the decision-grade manifest remains separate.
-5. Regenerate derived SEO artifacts only when accepted catalog inputs actually change.
-6. Run validation and build checks.
-7. Submit a small, reviewable PR with provenance notes.
+1. Put a bounded 1–50-record provider-neutral input through the shared candidate boundary; discovery must be an approved official source or explicit curated input.
+2. Run deterministic validation and automatic quarantine.
+3. For a reviewed authorized-source policy, record a versioned digest-bound machine decision. Otherwise complete explicit human review for named review-ready IDs.
+4. Promote only explicitly selected candidates with a valid human or authorized machine decision; catalog/source metadata update together and the decision-grade manifest remains separate.
+5. Reconcile stable source identities for updates. Treat withdrawal only from confirmed healthy observations, never from a provider failure or incomplete page.
+6. Regenerate derived SEO artifacts only when production accepted catalog inputs actually change.
+7. Run validation and build checks and submit a reviewable PR with provenance notes.
 
-The legacy `ingest:edx`, `ingest:coursera`, and `build:catalog` commands are disabled because they lacked the current evidence/quarantine contract or could write accepted data directly.
+The legacy `ingest:edx`, `ingest:coursera`, and `build:catalog` commands remain disabled because they lacked the current evidence/quarantine contract or could write accepted data directly. The issue #135 MIT Learn/OCW connector uses the shared boundary and is isolated-only until separately activated.
 
 ## Validation workflow
 Run:

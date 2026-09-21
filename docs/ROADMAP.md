@@ -24,7 +24,7 @@ Future work in this area should be limited to concrete usability defects or regr
 
 ## Phase 1 — Real Data
 
-**Status: Phase 1A source trust complete; Phase 1C.1 candidate staging and explicit promotion foundation is implemented for independent review.**
+**Status: Phase 1A source trust complete; Phase 1C.1 foundation and Phase 1C.2 isolated autonomous-source cycle are implemented for independent review. Production activation remains off.**
 
 Goal: make the catalog both trustworthy and useful enough to support real user decisions.
 
@@ -58,13 +58,24 @@ Completed:
 - **Phase 1B.9 — LinkedIn Learning + Microsoft Learn Provider Batch** in issue #122: LinkedIn Become a Data Analyst and two Microsoft Learn paths clear the actionable-pricing and 5/7 gates through shared provider-neutral structures. LinkedIn Getting Started as a Project Manager is blocked at 4/7 and intentionally omitted; no substitute is added. The catalog contains 23 courses and the approved set contains 15 courses across ten pairs. LinkedIn pricing remains qualified `starting_at`; Microsoft Learn training is genuine free access distinct from certification exams and Azure resource costs.
 - **Source-blocked publication boundary** in issue #125: the 23-record normalized catalog remains intact for audit, while the 21-course public catalog excludes two unavailable legacy offerings through provider-neutral source metadata. Their direct routes return 404, the derived sitemap contains 30 URLs, readiness pairs remain unchanged, and the 20 generated templates remain `noindex, follow` without blocked IDs.
 
-Do not migrate the remaining catalog automatically. Any later rollout requires another explicit, auditable batch decision.
+Do not infer decision-grade eligibility from source-ready publication. The decision-grade manifest remains an explicit, separately reviewed contract.
 
 ### Phase 1C — Safe ingestion operations
 
 - **Phase 1C.1 — Candidate staging and explicit promotion foundation** in issue #124: bounded 10–50-record JSON inputs now move through provider-neutral staging, deterministic review-ready/quarantine validation, factual reporting, and explicit named-ID promotion. Promotion updates accepted catalog/source metadata together, is collision-safe and idempotent, and never changes the decision-grade manifest. Legacy direct publishers are disabled. The production catalog is unchanged by the foundation pilot.
 
-This foundation authorizes safer batch mechanics, not automatic discovery, publication, catalog expansion, or decision-grade approval. Every production batch remains separately approved and human reviewed.
+Phase 1C.1 by itself authorizes safer batch mechanics, not automatic discovery, publication, catalog expansion, or decision-grade approval. Phase 1C.2 adds reviewed machine-policy capability for an approved source in isolation; production activation remains a separate reviewed change.
+
+- **Phase 1C.2 — first autonomous authorized-source cycle** in issue #135: the existing foundation now supports source identities, digest-bound versioned machine decisions, inserts and stable-identity updates, bounded retries, automatic quarantine, source anomaly stops, withdrawal confirmation state, and isolated atomic publication. A real 50-course MIT Learn/OCW pilot completed without human record review and an identical refresh produced 50 unchanged records with no duplicates. Production catalog, production automation, the decision-grade manifest, and SEO outputs remain unchanged. OCW's noncommercial license is an explicit production/monetization gate.
+
+The former permanent per-batch human-review requirement is superseded for stabilized sources governed by the reviewed machine policy. Human review remains available for manual/unapproved sources and exceptions. Production activation still requires independent review.
+
+### Approved Phase 1C sequence
+
+1. Review and activate the first connector and unattended schedule with monitoring; do not activate from this implementation PR.
+2. Add a complementary authorized provider with production-compatible terms and useful coverage gaps.
+3. Grow toward 100–300 useful courses across the four approved families while measuring freshness, unresolved quarantine, defects, cost, and human minutes.
+4. Implement automatic comparison eligibility only as a separate bounded initiative; never infer it from listing publication.
 
 ## Phase 2 — Monetization
 
@@ -119,15 +130,15 @@ Potential scope:
 
 - Database-backed catalog.
 - Admin tooling.
-- Data pipelines.
+- Additional pipeline platforms beyond the bounded file-based ingestion needed for approved delivery.
 - More scalable operational infrastructure.
 
 Do not build Phase 5 architecture to solve hypothetical scale.
 
 ## Immediate Sequence
 
-1. Independently review issue #124's staging, deterministic quarantine, collision-safe atomic promotion, idempotency, and unchanged production catalog/decision-grade manifest.
-2. Maintain conservative Phase 1A source trust without reopening verification work for its own sake.
-3. Use Phase 1C.1 only for separately authorized bounded production batches. Do not begin catalog-wide migration, automatic publication, or add another provider/course without a new product decision.
-4. Keep generated SEO templates `noindex, follow` and avoid new pair routes or scaled SEO volume until product and search evidence justify them.
+1. Independently review issue #135's connector, source terms, policy audit trail, isolated pilot evidence, failure recovery, and unchanged production boundaries.
+2. Decide whether to activate unattended operation only after review; OCW commercial compatibility or explicit permission is required before any monetized use.
+3. Add a complementary authorized source and grow useful horizontal coverage without weakening truth or pricing requirements.
+4. Keep decision-grade comparison, generated SEO indexability, and source-ready listing separate.
 5. Activate Phase 2 monetization only when a real program and appropriate disclosures are ready; commission must never affect visible ordering or factual presentation.

@@ -88,6 +88,10 @@ const buildCandidate = (
   return {
     candidateId,
     proposedCourseId,
+    sourceIdentity: {
+      sourceId: "fixture-provider",
+      providerCourseId: proposedCourseId
+    },
     platform: "Fixture Platform",
     provider: "Fixture Provider",
     canonicalSourceUrl: sourceUrl,
@@ -323,7 +327,7 @@ try {
         metadataPath,
         asOf: AS_OF
       }),
-    /unreviewed or quarantined/
+    /lacks an eligible human or machine publication decision/
   );
   const firstPromotion = promoteCandidates({
     stagingPath,
@@ -402,7 +406,7 @@ try {
         metadataPath,
         asOf: AS_OF
       }),
-    /unreviewed or quarantined/
+    /lacks an eligible human or machine publication decision/
   );
   assert.equal(readFileSync(catalogPath, "utf8"), acceptedCatalog);
   assert.equal(readFileSync(metadataPath, "utf8"), acceptedMetadata);
